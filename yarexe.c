@@ -38,6 +38,33 @@ unsigned char *eco2exe_filename, systemcalldata[256];
 unsigned char *filebuffer;
 char foundYarExe = 0;
 
+
+#ifdef __linux__ 
+char *strlwr(char *str)
+{
+  unsigned char *p = (unsigned char *)str;
+
+  while (*p) {
+     *p = tolower((unsigned char)*p);
+      p++;
+  }
+
+  return str;
+}
+
+char *strupr(char *str)
+{
+  unsigned char *p = (unsigned char *)str;
+
+  while (*p) {
+     *p = toupper((unsigned char)*p);
+      p++;
+  }
+
+  return str;
+}
+#endif
+
 long file_length(FILE *handle)
 {
     long retval;
@@ -958,3 +985,4 @@ debugPrint("padsizeEXE\t %d\n", padsizeEXE);
 
 
   
+
