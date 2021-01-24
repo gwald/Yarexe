@@ -1,3 +1,6 @@
+JAN 2021 - added -v verbose switch
+
+
 # Yarexe
 converts Net Yaroze ecoff and siocon's script to a psx.exe
 
@@ -5,7 +8,7 @@ converts Net Yaroze ecoff and siocon's script to a psx.exe
 YarEXE Hacked together by me, gwald
 Yarexe is a single program which converts Net Yaroze executable to a single psx.exe file via a siocons script (auto).
 yarexe.exe is win32 exec
-yardos.exe is dos/win98 exec (compiled with DJGPP/GO32)
+yardos.exe is dos/win98 exec (compiled with DJGPP/GO32) see YARDOS folder
 yarexe.c is my hacky coding putting it together.
 org-src is the orginal code of all programs required
 
