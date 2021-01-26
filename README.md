@@ -1,11 +1,11 @@
-yarexe233.c  Jan 25th 2021 
+yarexe234.c  Jan 26th 2021 
 - added -v for verbose switching
 
-GNU/CC - compiles with: 
+*nix CC - compiles with: 
 gcc yarexeXXX.c -o yarexe
 
-win32 version compiled with:
-tcc yarexeXXX.c -o yarexe.exe
+Attached win32 version compiled with:
+tcc yarexe.c -o yarexe.exe
 
 
 # Yarexe
