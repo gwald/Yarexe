@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
 	printf("Copyright is of the respective owners, wherever they are! We thank you!\n\n");
 
 
-	if( strcmp(argv[1], "/?")==0 || strcmp(argv[1], "/h") ==0 || strcmp(argv[1], "-h") ==0 || strcmp(argv[1], "--h") ==0 || strcmp(argv[1], "--help" )==0  || strcmp(argv[1], "--H")  )
+	if( strcmp(argv[1], "/?")==0 || strcmp(argv[1], "/h") ==0  || strcmp(argv[1], "/H" )==0 || strcmp(argv[1], "-h") ==0 || strcmp(argv[1], "--h") ==0  )
 		argc =0;
 
 	if( argc < 2) // 1 is just the exe name
