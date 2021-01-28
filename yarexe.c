@@ -350,9 +350,18 @@ int main(int argc, char *argv[])
 
 	printf("Copyright is of the respective owners, wherever they are! We thank you!\n\n");
 
+	{
+		int i;
+		for(i=0; i<argc; i++)
+			printf("argv[%d]=%s\n",i, argv[i]);
 
-	if( strcmp(argv[1], "/?")==0 || strcmp(argv[1], "/h") ==0  || strcmp(argv[1], "/H" )==0 || strcmp(argv[1], "-h") ==0 || strcmp(argv[1], "--h") ==0  )
-		argc =0;
+	}
+
+
+
+	if(argc>1) // if options entered
+		if( strcmp(argv[1], "/?")==0 || strcmp(argv[1], "/h") ==0  || strcmp(argv[1], "/H" )==0 || strcmp(argv[1], "-h") ==0 || strcmp(argv[1], "--h") ==0  )
+			argc = 0;
 
 	if( argc < 2) // 1 is just the exe name
 	{
@@ -363,7 +372,7 @@ int main(int argc, char *argv[])
 				"You must have LIBPS.EXE in the local folder or the root folder of the current drive ie C:\\ D:\\ etc \nOutput files is psx.exe = exefixup file which is ready to run! - if it didn't create it, something went wrong in combine or eco2exe \nauto file (Net Yaroze script) must have the last line as:  go\nFile combEco.exe is a temporary file which is the siocons script combined file and ecoff to exe applied\n\n");
 
 		fflush(stdout);
-		return 1;
+		exit(0);
 	}
 
 
@@ -394,6 +403,8 @@ int main(int argc, char *argv[])
 		LibPS_fileHnd = fopen("LIBPS.BIN", "rb");
 	if (!LibPS_fileHnd)
 		LibPS_fileHnd = fopen("\\LIBPS.BIN", "rb");
+
+
 
 
 
@@ -429,14 +440,6 @@ int main(int argc, char *argv[])
 			g_verbose =1;
 	}
 
-
-	if(g_verbose)
-	{
-		int i;
-		for(i=0; i<argc; i++)
-			printf("argv[%d]=%s\n",i, argv[i]);
-
-	}
 
 	if (!LibPS_fileHnd)
 	{
