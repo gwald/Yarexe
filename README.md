@@ -1,3 +1,6 @@
+yarexe235.c March 10th 2021
+- Better error handling
+
 yarexe234.c  Jan 26th 2021 
 - added -v for verbose switching
 
