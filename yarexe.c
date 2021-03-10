@@ -1,7 +1,6 @@
 // Yaroze PS-X EXE builder
 #define YAREXE "YAREXE: Yaroze PS-X EXE builder v2.35 10 March 2021"
 
-
 // Copyright (C) Barubary 1998.  All rights not expressly granted reserved.
 // Yaroze and PS-X are trademarks of Sony Computer Entertainment, Inc.
 
