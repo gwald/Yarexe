@@ -1,5 +1,5 @@
 // Yaroze PS-X EXE builder
-#define YAREXE "YAREXE: Yaroze PS-X EXE builder v2.34 26 Jan 2021"
+#define YAREXE "YAREXE: Yaroze PS-X EXE builder v2.35 10 March 2021"
 
 
 // Copyright (C) Barubary 1998.  All rights not expressly granted reserved.
@@ -21,7 +21,7 @@
 
 
 #ifdef USE_ECO2EXE_SOURCE
-void eco2exe_main(char *_filename);
+void eco2exe_main(char *filename);
 void exeFixUp_main( char *filename);
 #endif
 
@@ -133,7 +133,7 @@ char *strupr2(char *str)
 
 
 
-void cmd_dload(unsigned char *params[])
+int cmd_dload(unsigned char *params[])
 {
 	unsigned long address, length;
 	FILE *handle;
@@ -141,13 +141,13 @@ void cmd_dload(unsigned char *params[])
 	if (!params[2] || !params[3])
 	{
 		printf("ERROR: Not enough parameters for command DLOAD\n");
-		exit(1);
+		return (1);
 	}
 	handle = fopen(params[2], "rb");
 	if (!handle)
 	{
 		printf("ERROR: Could not find input file %s\n", params[2]);
-		exit(1);
+		return (1);
 	}
 	address = strtoul(params[3], NULL, 16);
 	length = (unsigned long) file_length(handle);
@@ -158,9 +158,11 @@ void cmd_dload(unsigned char *params[])
 
 	MemoryWriteFile(handle, address, length);
 	fclose(handle);
+
+	return 0;
 }
 
-void cmd_load(unsigned char *params[])
+int cmd_load(unsigned char *params[])
 {
 	FILE *handle;
 	unsigned long exe_org, length;
@@ -177,7 +179,7 @@ void cmd_load(unsigned char *params[])
 	if (!params[2])
 	{
 		printf("ERROR: Not enough parameters for command DLOAD\n");
-		exit(1);
+		return (1);
 	}
 	handle = fopen(params[2], "rb");
 	if (!handle)
@@ -206,7 +208,7 @@ void cmd_load(unsigned char *params[])
 				if (!handle)
 				{
 					printf("ERROR: Could not find yaroze main program file >%s< (with/without .exe nor .sys)  - auto file (Net Yaroze script) must have the last line as:  go\nDo not include tabs or other non alphanumeric chars.\nEtentions .exe and .sys are ingnored, ie main.exe main.sys are the same as main.", params[2]);
-					exit(1);
+					return (1);
 				}
 
 			}
@@ -245,7 +247,7 @@ void cmd_load(unsigned char *params[])
 	if ((length < 2048) || memcmp(filebuffer, "PS-X EXE", 8))
 	{
 		printf("ERROR: COMBINE.TMP has an invalid file format!\n");
-		exit(1);
+		return (1);
 	}
 	exec_address = *((unsigned long *) (filebuffer + 0x10));
 	exe_org = *((unsigned long *) (filebuffer + 0x18));
@@ -257,23 +259,26 @@ void cmd_load(unsigned char *params[])
 
 	if(g_verbose==1)
 		printf("Prog %-11.11s length %-8.8X address %-8.8X\n", params[2], length,	exe_org);
+
+
+	return 0;
 }
 
 // This is a pretty useful algorithm that you can copy from the old (public
 // domain) version of COMBINE.
-void parse(unsigned char *string)
+int parse(unsigned char *string)
 {
 	int str_len = strlen(string), x, y;
 	unsigned char *params[60];
 
 
 	// Ignore blank strings
-	if (!str_len) return;
+	if (!str_len) return 0;
 
 	// Ignore strings with only spaces
 	for (x = 0; x < str_len; x++)
 		if (string[x] != ' ') break;
-	if (x == str_len) return;
+	if (x == str_len) return 0;
 
 	y = 0;
 
@@ -311,20 +316,23 @@ void parse(unsigned char *string)
 	if (params[1] && !strcmp(params[0], "LOCAL"))
 	{
 		if (!strcmp(params[1], "DLOAD"))
-			cmd_dload(&params);
+			if( cmd_dload(&params) )
+				return 1;
+
 
 		if (!strcmp(params[1], "LOAD"))
 		{
-			cmd_load(&params);
+			if(cmd_load(&params) )
+				return 1;
 		}
 	}
 
 
+	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	unsigned char *data, execaddress[4], stackaddress[4], lengthoffile[4];
 	int index, x;
 	unsigned char temp;
 	char targetFilename[12] = "combEco.exe";
@@ -474,15 +482,36 @@ int main(int argc, char *argv[])
 	handle1 = fopen(argv[1], "rb");
 	if (!handle1)
 	{
-		printf("Could not find input file %s\n", argv[1]);
-		fflush(stdout);
-		return 1;
+
+		//try upper case!
+
+		strupr2(argv[1]);
+		handle1 = fopen(argv[1], "rb");
+
+		if (!handle1)
+		{
+			// try again in all lower!
+			strlwr2(argv[1]);
+			handle1 = fopen(argv[1], "rb");
+
+		}
+
+
+		if (!handle1)
+		{
+			//fail
+			printf("Could not find input file %s (in original case and both upper and lower case)\n", argv[1]);
+			fflush(stdout);
+			return 1;
+		}
 	}
 
 	target_fileHnd = fopen(targetFilename, "w+b");
 	if (!target_fileHnd)
 	{
 		printf("Could not open output file %s\n", argv[2]);
+		fclose(handle1);
+
 		fflush(stdout);
 		return 1;
 	}
@@ -491,6 +520,8 @@ int main(int argc, char *argv[])
 	if (!temphandle)
 	{
 		printf("Could not open temporary output file COMBINE.TMP\n");
+		fclose(handle1);
+
 		fflush(stdout);
 		return 1;
 	}
@@ -501,6 +532,8 @@ int main(int argc, char *argv[])
 	if (!memspace || !filebuffer)
 	{
 		printf("Not enough memory to build image (need 4 megs)\n");
+		fclose(handle1);
+
 		fflush(stdout);
 		return 1;
 	}
@@ -518,6 +551,8 @@ int main(int argc, char *argv[])
 	if (!script)
 	{
 		printf("ERROR: Out of memory trying to read script\n");
+		fclose(handle1);
+
 		fflush(stdout);
 		return 1;
 	}
@@ -531,7 +566,22 @@ int main(int argc, char *argv[])
 		{
 			scriptstring[x] = 0;
 			x = 0;
-			parse(scriptstring);
+			if( parse(scriptstring) )
+			{
+				//bad giving up
+				fclose(handle1);
+				fclose(target_fileHnd);
+				fclose(temphandle);
+
+				unlink(targetFilename);
+				unlink("COMBINE.TMP");
+
+
+
+				fflush(stdout);
+				return 1;
+			}
+
 			continue;
 		}
 		if (!temp) continue;
@@ -547,6 +597,8 @@ int main(int argc, char *argv[])
 	if(g_foundYarExe == 0)
 	{
 		printf("\n ERROR: auto file incorrect, the word local must be before load \n IE: local load main.exe\n");
+		fclose(handle1);
+
 		fflush(stdout);
 		return 1;
 	}
