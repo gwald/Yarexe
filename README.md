@@ -1,3 +1,7 @@
+
+How to run Net Yaroze games in an emulator - https://www.youtube.com/watch?v=H0Ki7JnamIQ
+
+
 yarexe3.c Aug 6th 2022
 - CodeWarrior PXE support with included Libps.exe
 
