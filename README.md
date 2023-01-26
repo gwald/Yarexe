@@ -1,8 +1,9 @@
 
-How to run Net Yaroze games in an emulator - https://www.youtube.com/watch?v=H0Ki7JnamIQ
+How to convert Net Yaroze games (siocons script with exe and assets) into PS1 ISO that runs in emulators: - https://www.youtube.com/watch?v=H0Ki7JnamIQ
 
-yarexe4.c Jan 2023
+yarexe4.c Jan 2023 (https://github.com/gwald/Yarexe/releases/tag/v4)
 - Improved CodWarrior support
+- contains all previous versions (exe and code)
 
 yarexe3.c Aug 6th 2022
 - CodeWarrior PXE support with included Libps.exe
