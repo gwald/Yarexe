@@ -24,8 +24,9 @@ yarexe siocons_batch_file [-v]
 
 * siocons_batch_file
 
-Net Yaroze script must have the last line as: go
 This your siocons auto batch script, only dload, load and go are used, see: https://archive.org/details/net-yaroze-documents/020-1997-userguide/page/206/mode/1up
+
+The last line of the script must be a single go statement.
 
 * -v
 
