@@ -3,7 +3,7 @@
 
 Yarexe is a single program which converts Net Yaroze executables to a single psx.exe file use the Net Yaroze siocons loading script file, often called auto or batch.
 
-yarexe.exe is a win32 execute (compiled with TCC).
+yarexe.exe is a win32 executable (compiled with TinyCC).
 
 yarexe.c & yarexe.inc source files.
 
