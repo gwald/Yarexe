@@ -1,7 +1,10 @@
 
 How to convert Net Yaroze games (siocons script with exe and assets) into PS1 ISO that runs in emulators: - https://www.youtube.com/watch?v=H0Ki7JnamIQ
+Note: Standard PS-X elf executables (ie Net Yaroze ecoff files processed with eco2elf) can be used but they have to use the CodeWarrior .pxe extension.
 
-v5 - Jun 2023 - Bug fixes
+
+v5 - Jun 2023 
+- Bug fixes
 
 yarexe4.c Jan 2023 (https://github.com/gwald/Yarexe/releases/tag/v4)
 - Improved CodeWarrior support
