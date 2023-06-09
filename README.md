@@ -1,6 +1,8 @@
 
 How to convert Net Yaroze games (siocons script with exe and assets) into PS1 ISO that runs in emulators: - https://www.youtube.com/watch?v=H0Ki7JnamIQ
 
+v5 - Jun 2023 - Bug fixes
+
 yarexe4.c Jan 2023 (https://github.com/gwald/Yarexe/releases/tag/v4)
 - Improved CodeWarrior support
 - contains all previous versions (exe and code)
@@ -22,7 +24,7 @@ Attached win32 version compiled with:
 tcc yarexe.c -o yarexe.exe
 
 
-# Yarexe
+# Yarexe (old info)
 converts Net Yaroze ecoff and siocon's script to a psx.exe
 
 Yarexe is a single program which converts Net Yaroze executable to a single psx.exe file via a siocons script (auto).
