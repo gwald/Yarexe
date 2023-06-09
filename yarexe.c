@@ -7,8 +7,11 @@
 // Linux note: Yarexe is programmed for windows, it uses \ for folders, and it does NOT handle case differences, it will not find files.
 
 
-// Yarexe is a combination the following:
+// Yarexe is a poor hack job of the following:
 
+
+// combine.exe
+// Yaroze PS-X EXE builder v2.10
 // Copyright (C) Barubary 1998.  All rights not expressly granted reserved.
 // Yaroze and PS-X are trademarks of Sony Computer Entertainment, Inc.
 
@@ -20,12 +23,54 @@
 // IT IS NOT MODIFIED NOR ANY CHARGE IS ASSOCIATED WITH DISTRIBUTION.
 // NO WARRANTY.
 
-// I was given permission to use eco2exe source by Silpheed (thank you), but
-// I cannot distribute it.  Comment this to use the old style combine, which
-// calls eco2exe.exe via system().
+/*
+ * eco2exe.c v0.01 Andrew Kieschnick <andrewk@mail.utexas.edu>
+ *
+ * converts MIPSEL-LE ecoff to PS-X EXE
+ *
+ * THIS SOURCE WAS MODIFIED (SLIGHTLY) TO WORK UNDER DOS
+ * IF YOU USE UNIX, GET THE THE UNMODIFIED SOURCE
+ *
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
-
-// exefixup v0.02 By Andrew Kieschnick <andrewk@mail.utexas.edu>
+/*
+ * exefixup.c v0.02 Andrew Kieschnick <andrewk@mail.utexas.edu>
+ *
+ * displays PS-X EXE header information
+ * offers to fix incorrect t_size
+ * offers to pad to 2048-byte boundary for cd-rom use
+ *
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
 // CodeWarrior PS-X EXE File Patcher By ~imilco (Peter Armstrong)
 
