@@ -1,8 +1,13 @@
-// yarexe - Net Yaroze to PS-X EXE builder
-// linux build: gcc -static-libgcc -static-libstdc++ -static -O3 yarexe2.c -o yarexe
+// yarexe - Net Yaroze PS-X EXE package builder.
+// https://github.com/gwald
+
+// Note: Standard PS-X elf executables (ie Net Yaroze ecoff files processed with eco2elf) can be used but they have to use the CodeWarrior .pxe extension.
+
+// Build: gcc -static-libgcc -static-libstdc++ -static -O3 yarexe.c -o yarexe
+// Linux note: Yarexe is programmed for windows, it uses \ for folders, and it does NOT handle case differences, it will not find files.
 
 
-
+// Yarexe is a combination the following:
 
 // Copyright (C) Barubary 1998.  All rights not expressly granted reserved.
 // Yaroze and PS-X are trademarks of Sony Computer Entertainment, Inc.
@@ -20,6 +25,10 @@
 // calls eco2exe.exe via system().
 
 
+// exefixup v0.02 By Andrew Kieschnick <andrewk@mail.utexas.edu>
+
+// CodeWarrior PS-X EXE File Patcher By ~imilco (Peter Armstrong)
+
 
 // ecoff a.out format from siocon src
 /*
@@ -28,21 +37,17 @@
  */
 
 
-// nexefixup v0.02 By Andrew Kieschnick <andrewk@mail.utexas.edu>
-
-// CodeWarrior PS-X EXE File Patcher By ~imilco (Peter Armstrong)
 
 
 
 
+#define YAREXE_VER "YAREXE - v5 June 2023 - bug fixes"
+#define YAREXE "Net Yaroze PS-X packager"
 
-
-
-
-#define YAREXE_VER "YAREXE - v4 Jan 2023 - CodeWarrior and included Libps.exe"
-#define YAREXE "Net Yaroze batch combiner and PS-X EXE patcher"
-
-
+/*
+ * v5 - bug fixes
+ * v4 - CodeWarrior and included Libps.exe
+ */
 
 
 #include <stdio.h>
@@ -129,9 +134,9 @@ extern const unsigned char psx_exe[458752];
 FILE *auto_fileHnd, *target_fileHnd, *combine_fileHnd;
 long length1, length2, length3, length4, memorysize = 0;
 unsigned long exec_address = 0, stack_address = 0;
-unsigned char *memspace, *auto_fileBuff, scriptstring[1024];
-unsigned char *eco2exe_filename, systemcalldata[256];
-unsigned char *filebuffer;
+unsigned char *memstore =0, *memspace =0, *auto_fileBuff=0, scriptstring[1024];
+unsigned char  *filebuffer=0, *eco2exe_filename=0, systemcalldata[256];
+
 
 int g_foundYarExe = 0;
 int g_verbose = 0;
@@ -708,7 +713,7 @@ void print_authors(void)
 
 int main(int argc, char *argv[])
 {
-	int index, x;
+	int index, curline, ret =1;
 	unsigned char temp;
 	char target_combEcoExe[12] = "combEco.exe";
 
@@ -823,17 +828,23 @@ int main(int argc, char *argv[])
 	fclose(combine_fileHnd);
 
 	// Allocate memory
-	memspace = calloc(1, 2 * 1024 * 1024 + 2048);
-	filebuffer = calloc(1, 2 * 1024 * 1024 + 2048);
-
-
-
-
-	if (!memspace || !filebuffer)
+	memstore = calloc(1, 2 * 1024 * 1024 + 2048);
+	if (memstore == NULL)
 	{
-		printf("Not enough memory to build image (need 4 megs)\n");
+		printf("Not enough memspace memory to build image (need 4 megs)\n");
 		goto RUN_EXIT;
 	}
+
+	// keep memstore for free, memspace pointer gets moved
+	memspace = memstore;
+
+	filebuffer = calloc(1, 2 * 1024 * 1024 + 2048);
+	if(filebuffer == NULL)
+	{
+		printf("Not enough filebuffer memory to build image (need 4 megs)\n");
+		goto RUN_EXIT;
+	}
+
 
 
 	// Put LIBPS in first.
@@ -852,7 +863,7 @@ int main(int argc, char *argv[])
 	auto_fileBuff = calloc(1, length1 + 1);
 
 
-	if (!auto_fileBuff)
+	if(auto_fileBuff == NULL)
 	{
 		printf("ERROR: Out of memory trying to read script\n");
 		goto RUN_EXIT;
@@ -863,13 +874,13 @@ int main(int argc, char *argv[])
 	auto_fileBuff[length1] = 0;
 
 
-	for (index = 0, x = 0; index < length1; index++)
+	for (index = 0, curline = 0; index < length1; index++)
 	{
 		temp = auto_fileBuff[index];
 		if ((temp == 0x0D) || (temp == 0x0A)) // - or * ASCII
 		{
-			scriptstring[x] = 0;
-			x = 0;
+			scriptstring[curline] = 0;
+			curline = 0;
 			if( parse(scriptstring) )
 			{
 				//bad giving up
@@ -880,11 +891,11 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		if (!temp) continue;
-		scriptstring[x++] = temp;
+		scriptstring[curline++] = temp;
 	}
 
 	// single line, single exe file, no data, no go statement
-	if (x)
+	if (curline)
 	{
 		// scriptstring[x] = temp;
 		if(g_verbose)
@@ -916,41 +927,41 @@ int main(int argc, char *argv[])
 
 
 	fclose(target_fileHnd);
+	target_fileHnd =0;
 
 
 	if(g_verbose==1)
 		printf("\nexefixup filename=%s \n",  target_combEcoExe);
 
 
-
-	static int ret =1;
 	ret = exeFixUp_main( target_combEcoExe);
 
 	//GOTO RUN_EXIT - single point of exit!
 	RUN_EXIT:
 
+
 	fflush(stdout);
+
+
+	// remove temp files
+	unlink(target_combEcoExe);
+	unlink(COMBINE_TMP_FILENAME);
+
+
 
 	if(auto_fileHnd)
 		fclose(auto_fileHnd);
 
-	if(target_fileHnd)
-		fclose(target_fileHnd);
 
-	if(combine_fileHnd)
-		fclose(combine_fileHnd);
-
-	unlink(target_combEcoExe);
-	unlink(COMBINE_TMP_FILENAME);
-
-	if(memspace)
-		free(memspace);
+	if(memstore)
+		free(memstore);
 
 	if(filebuffer)
 		free(filebuffer);
 
 	if(auto_fileBuff)
 		free(auto_fileBuff);
+
 
 	return ret;
 
@@ -1005,7 +1016,7 @@ int copyPXE(char *filename)
 	FILE *ffrom;
 	FILE *fto;
 	int size, ramSize, i;
-	char *exedata;
+	char *pxedata;
 
 	// new file ends with exe, not pxe
 	filename[strlen(filename) -3] = 'p'; // make sure filename is pxe
@@ -1030,14 +1041,14 @@ int copyPXE(char *filename)
 
 	ramSize += ramSize % 8; // make it more hardware friendly
 
-	exedata = malloc(ramSize);
+	pxedata = malloc(ramSize);
 
-	if(exedata == NULL)
+	if(pxedata == NULL)
 		return 1;
 
-	memset(exedata, 0,ramSize);
+	memset(pxedata, 0,ramSize);
 
-	fread(exedata, 1, size,  ffrom);
+	fread(pxedata, 1, size,  ffrom);
 	fflush(ffrom); //force update
 
 
@@ -1079,7 +1090,7 @@ int copyPXE(char *filename)
 		/* read in required values, we don't need 2nd */
 		//fread(&data, 4, 4, file);
 
-		data_ptr = (struct data_s *) ( (char *)exedata+16 ); /* seek to pc0 */
+		data_ptr = (struct data_s *) ( (char *)pxedata+16 ); /* seek to pc0 */
 
 		mips.oldpc0 = data_ptr->pc0;						/* keep original start address */
 		data_ptr->pc0 = data_ptr->start_addr + data_ptr->size;			/*  new code added at end of exe */
@@ -1093,7 +1104,7 @@ int copyPXE(char *filename)
 
 		mips.oldpc0 = 0x08000000 + ((mips.oldpc0&0x03ffffff)>>2);
 
-		mips_ptr =  (struct mips_s *)(exedata+size); //point to end of orig exe file
+		mips_ptr =  (struct mips_s *) ( (char *)pxedata+size ); //point to end of orig exe file
 
 		memcpy(mips_ptr, &mips, sizeof(mips));//copy to file in ram
 
@@ -1101,8 +1112,8 @@ int copyPXE(char *filename)
 		//printf("File patched.\n");
 
 
-		//fwrite(exedata, size + 16, 1, fto);
-		// fwrite(exedata, sizeof(char),size + 16, fto);
+		//fwrite(pxedata, size + 16, 1, fto);
+		// fwrite(pxedata, sizeof(char),size + 16, fto);
 		// fflush(fto); //force update
 
 
@@ -1121,7 +1132,7 @@ int copyPXE(char *filename)
 				return 1;
 
 
-			fwrite(exedata, sizeof(char),size + 16, PSX);
+			fwrite(pxedata, sizeof(char),size + 16, PSX);
 			fflush(PSX); //force update
 			fclose(PSX);
 		}
@@ -1143,7 +1154,7 @@ int copyPXE(char *filename)
 
 			filename[strlen(filename) -3] = 'p'; // change back to pxe - just incase
 
-			fwrite(exedata, sizeof(char),size + 16, PSX);
+			fwrite(pxedata, sizeof(char),size + 16, PSX);
 			fflush(PSX); //force update
 			fclose(PSX);
 		}
@@ -1156,7 +1167,8 @@ int copyPXE(char *filename)
 	fclose(ffrom);
 	fclose(fto);
 
-	free(exedata);
+	free(pxedata);
+	
 	fflush(stdout);
 
 	return 0;
@@ -1315,6 +1327,7 @@ int eco2exe_main(char *filename)
 
 		fclose(exe);
 		fclose(ecoff);
+		free(exedata);
 
 		fflush(stdout);
 		return 0; // return ok
@@ -1911,7 +1924,7 @@ int eco2exe_main(char *filename)
 
 	fclose(exe);
 	fclose(ecoff);
-
+	
 	fflush(stdout);
 	return 0;
 
