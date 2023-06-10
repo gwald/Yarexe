@@ -176,16 +176,17 @@ extern const unsigned char psx_exe[458752];
 
 
 
-FILE *auto_fileHnd, *target_fileHnd, *combine_fileHnd;
+FILE *auto_fileHnd = NULL, *target_fileHnd = NULL, *combine_fileHnd = NULL;
 long length1, length2, length3, length4, memorysize = 0;
+char *scriptstring = NULL, *memspace = NULL, *memstore = NULL;
 unsigned long exec_address = 0, stack_address = 0;
-unsigned char *memstore =0, *memspace =0, *auto_fileBuff=0, scriptstring[1024];
-unsigned char  *filebuffer=0, *eco2exe_filename=0, systemcalldata[256];
+unsigned char *auto_fileBuff=NULL, *filebuffer=NULL,
+	      *eco2exe_filename=NULL, systemcalldata[256];
 
 
 int g_foundYarExe = 0;
 int g_verbose = 0;
-char g_pxe_filename[256]={0};
+char g_pxe_filename[256];
 
 long file_length(FILE *handle)
 {
@@ -267,7 +268,7 @@ int MemoryWriteMemory(char *handle, unsigned long address, long length)
 	address &= 0x0FFFFFFF;
 	if ((address > 0x001FFFFF) || (address < 0x00010000))
 	{
-		printf("ERROR: Address %-8.8X invalid!\n", address);
+		printf("ERROR: Address %-8.8lX invalid!\n", address);
 		return (1);
 	}
 	if (!length)
@@ -302,7 +303,7 @@ int MemoryWriteFile(FILE *handle, unsigned long address, long length)
 	address &= 0x0FFFFFFF;
 	if ((address > 0x001FFFFF) || (address < 0x00010000))
 	{
-		printf("ERROR: Address %-8.8X invalid!\n", address);
+		printf("ERROR: Address %-8.8lX invalid!\n", address);
 		return (1);
 	}
 	if (!length)
@@ -327,7 +328,7 @@ int MemoryWriteFile(FILE *handle, unsigned long address, long length)
 }
 
 
-char *strlwr2(char *str)
+char *str2lwr(char *str)
 {
 	unsigned char *p = (unsigned char *)str;
 
@@ -339,7 +340,7 @@ char *strlwr2(char *str)
 	return str;
 }
 
-char *strupr2(char *str)
+char *str2upr(char *str)
 {
 	unsigned char *p = (unsigned char *)str;
 
@@ -354,7 +355,7 @@ char *strupr2(char *str)
 
 
 
-int cmd_dload(unsigned char (*params[]) )
+int cmd_dload(char (*params[]) )
 {
 	unsigned long address, length;
 	FILE *handle;
@@ -372,10 +373,10 @@ int cmd_dload(unsigned char (*params[]) )
 	}
 	address = (unsigned long) strtoul(params[3], NULL, 16);
 	length = (unsigned long) file_length(handle);
-	strupr2(params[2]);
+	str2upr(params[2]);
 
 	if(g_verbose==1)
-		printf("Data %-11.11s length %-8.8X address %-8.8X\n", params[2], length,	address);
+		printf("Data %-11.11s length %-8.8lX address %-8.8lX\n", params[2], length,	address);
 
 	if(MemoryWriteFile(handle, address, length))
 		return (1);
@@ -428,9 +429,10 @@ int loadEcoff(FILE *ecoff, char *PSX_RAM) // code from case COFF_EXE below - ass
 }
 #endif
 
-int cmd_load(unsigned char (*params[]) )
+int cmd_load(char (*params[]) )
 {
 	FILE *handle;
+	int size = 0;
 	unsigned long exe_org, length;
 
 	//not this -COMBINE <scriptfile> <outfile> <libps location> "
@@ -453,7 +455,9 @@ int cmd_load(unsigned char (*params[]) )
 	//trying a few common miss naming in the auto file
 	if (!handle)
 	{
-		char yarFile[150];
+		while(params[2][size])
+			size++;
+		char yarFile[size];
 
 		strcpy(yarFile,params[2] );
 
@@ -599,9 +603,9 @@ int cmd_load(unsigned char (*params[]) )
 
 	if(g_verbose==1)
 	{
-		printf("Net Yaroze exe (.sbss) address = (%X)\n", exec_address);
-		printf("Net Yaroze exe (.text) text org address = (%X)\n", exe_org);
-		printf("Net Yaroze exe stack start address = (%X)\n", stack_address);
+		printf("Net Yaroze exe (.sbss) address = (%lX)\n", exec_address);
+		printf("Net Yaroze exe (.text) text org address = (%lX)\n", exe_org);
+		printf("Net Yaroze exe stack start address = (%lX)\n", stack_address);
 		fflush(stdout);
 
 	}
@@ -614,7 +618,7 @@ int cmd_load(unsigned char (*params[]) )
 
 	fclose(combine_fileHnd);
 	unlink(COMBINE_TMP_FILENAME);// remove tmp file
-	//strupr2(params[2]);
+	//str2upr(params[2]);
 
 
 
@@ -628,7 +632,7 @@ int cmd_load(unsigned char (*params[]) )
 			file = params[2];
 
 
-		printf("NY exe %s length %X (%d) address %X\n", file, length,	length, exe_org);
+		printf("NY exe %s length %lX (%lu) address %lX\n", file, length,	length, exe_org);
 		printf("Leaving patched CodeWarrior PS-X EXE file: %s " , g_pxe_filename);
 		fflush(stdout);
 	}
@@ -647,10 +651,10 @@ int cmd_load(unsigned char (*params[]) )
 
 // This is a pretty useful algorithm that you can copy from the old (public
 // domain) version of COMBINE.
-int parse(unsigned char *string)
+int parse(char *string)
 {
 	int str_len = strlen(string), x, y;
-	unsigned char *params[60];
+	char **params;
 
 
 	// Ignore blank strings
@@ -663,6 +667,7 @@ int parse(unsigned char *string)
 
 	y = 0;
 
+	params = malloc(sizeof(char *));
 	for (;;)
 	{
 		// Skip all initial spaces for this parameter
@@ -678,18 +683,26 @@ int parse(unsigned char *string)
 		if (x == str_len)
 		{
 			y++;
+			params = realloc(params, sizeof(char *) * (y + 1));
+			params[y] = NULL;
 			break;
 		}
 		// End of parameter.  Increment X and Y.
 		x++;
 		y++;
+		params = realloc(params, sizeof(char *) * (y + 1));
+		params[y] = NULL;
 	}
-	params[y] = NULL;
 
-	strupr2(params[0]);
+#ifndef WIN32
+	for(x = y = 0; params[x] && params[x][y]; y++, params[x][y] ? : (x++, y = 0))
+		if(params[x][y] == '\\') params[x][y] = '/';
+#endif
+
+	str2upr(params[0]);
 
 	if (params[1])
-		strupr2(params[1]);
+		str2upr(params[1]);
 
 	if (!strcmp(params[0], "GO") && g_verbose==1)
 		{
@@ -701,12 +714,12 @@ int parse(unsigned char *string)
 		if (!strcmp(params[1], "DLOAD"))
 		{
 			if( cmd_dload(params) )
-				return 1;
+				goto err;
 		}
 		else if (!strcmp(params[1], "LOAD"))
 		{
 			if(cmd_load(params) )
-				return 1;
+				goto err;
 		}
 		else if(g_verbose==1)
 		{
@@ -720,8 +733,13 @@ int parse(unsigned char *string)
 
 	}
 
+	free(params);
 	fflush(stdout);
 	return 0;
+
+err:
+	free(params);
+	return 1;
 }
 
 void print_authors(void)
@@ -760,9 +778,9 @@ int main(int argc, char *argv[])
 {
 	int index, curline, ret =1;
 	unsigned char temp;
-	char target_combEcoExe[12] = "combEco.exe";
+	char target_combEcoExe[] = "combEco.exe";
 
-
+	memset(g_pxe_filename, 0, sizeof g_pxe_filename);
 
 
 
@@ -836,13 +854,13 @@ int main(int argc, char *argv[])
 
 		//try upper case!
 
-		strupr2(argv[1]);
+		str2upr(argv[1]);
 		auto_fileHnd = fopen(argv[1], "rb");
 
 		if (!auto_fileHnd)
 		{
 			// try again in all lower!
-			strlwr2(argv[1]);
+			str2lwr(argv[1]);
 			auto_fileHnd = fopen(argv[1], "rb");
 
 		}
@@ -918,7 +936,7 @@ int main(int argc, char *argv[])
 	readfile(auto_fileHnd, auto_fileBuff, length1);
 	auto_fileBuff[length1] = 0;
 
-
+	scriptstring = malloc(1);
 	for (index = 0, curline = 0; index < length1; index++)
 	{
 		temp = auto_fileBuff[index];
@@ -937,6 +955,7 @@ int main(int argc, char *argv[])
 		}
 		if (!temp) continue;
 		scriptstring[curline++] = temp;
+		scriptstring = realloc(scriptstring, curline + 1);
 	}
 
 	// single line, single exe file, no data, no go statement
@@ -1007,6 +1026,8 @@ int main(int argc, char *argv[])
 	if(auto_fileBuff)
 		free(auto_fileBuff);
 
+	if(scriptstring)
+		free(scriptstring);
 
 	return ret;
 
@@ -1262,14 +1283,17 @@ int eco2exe_main(char *filename)
 {
 	FILE *ecoff;
 	FILE *exe;
-	unsigned char data[4]={0};
+	unsigned char data[4];
 	int i,j,k=2;
-	unsigned int header_data[14]={0};
+	unsigned int header_data[14];
 	unsigned int ecoff_size;
 	unsigned int address;
 	unsigned int pc0;
 	unsigned char ecoffpatch=1; /* 0=don't, 1=do */
 	ECOHDRS ecoffHDR;
+
+	memset(header_data, 0, sizeof header_data);
+	memset(data, 0, sizeof data);
 
 	//float lit sections PITA
 	int litPos=-1;
@@ -1379,7 +1403,7 @@ int eco2exe_main(char *filename)
 	}
 	else if ( ((char *)&ecoffHDR)[0] == 'C' &&  ((char *)&ecoffHDR)[1] == 'P' &&  ((char *)&ecoffHDR)[2] == 'E')
 	{
-		printf("CRITICAL ERROR - % is a CPE binary file which is not supported.\n",filename);
+		printf("CRITICAL ERROR - %s is a CPE binary file which is not supported.\n",filename);
 		printf("Create a PS-X EXE with CPE2X or CPE2PSX and try again.\n");
 		return 111;
 	}
@@ -1731,7 +1755,7 @@ int eco2exe_main(char *filename)
 				k++;
 				for(j=0;j<4;j++)
 					fscanf(ecoff, "%c", &data[j]);
-				header_data[k]=char2int(data); // scnhdr.s_scnptr;		/* 96  - 100 file ptr to raw data for section
+				header_data[k]=char2int(data); // scnhdr.s_scnptr;		96  - 100 file ptr to raw data for section
 				k++;
 			 */
 		}
@@ -1877,7 +1901,7 @@ int eco2exe_main(char *filename)
 
 	if(g_verbose==1)
 	{
-		printf("ecoffHDR.ecoHDR.entry (pc) 0x\n", pc0 );
+		printf("ecoffHDR.ecoHDR.entry (pc) 0x%u\n", pc0 );
 	}
 
 
@@ -2035,7 +2059,7 @@ int exeFixUp_main(char *filenameEXEC)
 {
 	FILE *exeHnd;
 	FILE *outHnder;
-	unsigned char dataEXEC[8];
+	unsigned char dataEXEC[9];
 	// char filename[256];
 	int i;
 	unsigned int headerDATA[12];
@@ -2062,9 +2086,9 @@ int exeFixUp_main(char *filenameEXEC)
 
 	for(i=0;i<8;i++)
 		fscanf(exeHnd, "%c", &dataEXEC[i]);
-	dataEXEC[8]=0;
+	dataEXEC[sizeof dataEXEC - 1]=0;
 
-	if (strncmp(dataEXEC, "PS-X EXE", 8))
+	if (strncmp((char *) dataEXEC, "PS-X EXE", sizeof dataEXEC - 1))
 	{
 		printf("ERROR: Not a PS-X EXE file\n");
 		fflush(stdout);
