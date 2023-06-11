@@ -153,8 +153,9 @@ Yarexe is a poor hack job of the following:
  */
 ```
 
+`// CodeWarrior PS-X EXE File Patcher By ~imilco (Peter Armstrong)`
+
 ```
-// CodeWarrior PS-X EXE File Patcher By ~imilco (Peter Armstrong)
 // ecoff a.out format from siocon src
 /*
  *	Copyright (C) 1997 by Sony Computer Entertainment
