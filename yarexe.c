@@ -1,5 +1,5 @@
 // yarexe - Net Yaroze PS-X EXE package builder.
-// https://github.com/gwald
+// https://github.com/gwald/Yarexe
 
 // Note: Standard PS-X elf executables (ie Net Yaroze ecoff files processed with eco2elf) can be used but they have to use the CodeWarrior .pxe extension.
 
