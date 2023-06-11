@@ -404,8 +404,8 @@ int loadEcoff(FILE *ecoff, char *PSX_RAM) // code from case COFF_EXE below - ass
 	fread(&optHead, sizeof(optHead), 1, ecoff);
 
 	psxRegs.pc = SWAP32(optHead.entry);
-	psxRegs.GPR.n.gp = SWAP32(optHead.gp_value); //mgarcia set gp from siocons
-	psxRegs.GPR.n.sp = 0x801ffff0; //mgarcia orig 0x801fff00 siocons 0x801ffff0
+	psxRegs.GPR.n.gp = SWAP32(optHead.gp_value); //set gp from siocons
+	psxRegs.GPR.n.sp = 0x801ffff0; //orig 0x801fff00 siocons 0x801ffff0
 
 	SysPrintf(_("psxRegs.pc %X \n"), psxRegs.pc);
 	SysPrintf(_("psxRegs.GPR.n.gp %X \n"),psxRegs.GPR.n.gp);
@@ -425,7 +425,7 @@ int loadEcoff(FILE *ecoff, char *PSX_RAM) // code from case COFF_EXE below - ass
 		}
 	}
 
-	return fclose(ecoff); //mgarcia - lazy close!
+	return fclose(ecoff); // lazy close!
 }
 #endif
 
@@ -694,11 +694,6 @@ int parse(char *string)
 		params[y] = NULL;
 	}
 
-#ifndef WIN32
-	for(x = y = 0; params[x] && params[x][y]; y++, params[x][y] ? : (x++, y = 0))
-		if(params[x][y] == '\\') params[x][y] = '/';
-#endif
-
 	str2upr(params[0]);
 
 	if (params[1])
@@ -753,7 +748,7 @@ void print_authors(void)
 
 
 
-	printf("\nHacked together (poorly) by gwald aka Mike Garcia, From:");
+	printf("\nHacked together (poorly) by gwald, from:");
 	printf("\n\nCombine program v2.20\n"
 			"By Barubary 1998.\n"
 
