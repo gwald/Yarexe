@@ -268,7 +268,7 @@ int MemoryWriteMemory(char *handle, unsigned long address, long length)
 	address &= 0x0FFFFFFF;
 	if ((address > 0x001FFFFF) || (address < 0x00010000))
 	{
-		printf("ERROR: Address %-8.8lX invalid!\n", address);
+		printf("ERROR: Address %-8.8lX invalid - Check your linker settings!\n", address);
 		return (1);
 	}
 	if (!length)
