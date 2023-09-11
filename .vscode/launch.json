@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug",
+      "type": "gdb",
+      "request": "attach",
+      "target": "localhost:3333",
+      "remote": true,
+      "cwd": "${workspaceRoot}",
+      "valuesFormatting": "parseText",
+      "executable": "${workspaceRoot}/${workspaceRootFolderName}.elf",
+      "stopAtConnect": true,
+      "gdbpath": "gdb-multiarch",
+      "windows": {
+        "gdbpath": "gdb-multiarch.exe"
+      },
+      "osx": {
+        "gdbpath": "gdb"
+      },
+      "autorun": [
+        "monitor reset shellhalt",
+		"restore DATA/CAR/CAR01.TMD        binary 0x80090000",
+		"restore DATA/SQUARE1/SQUARE1.TMD  binary 0x80093000",
+		"restore DATA/CAR/COM.TIM          binary 0x800A0000",
+		"restore DATA/SQUARE1/SQUARE1.TIM  binary 0x800B0000",
+		"load ${workspaceRootFolderName}.elf",
+        "tbreak main",
+        "continue"
+      ]
+    }
+  ]
+}
