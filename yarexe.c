@@ -85,8 +85,8 @@
 
 
 
-
-#define YAREXE_VER "YAREXE - v5 June 2023 - bug fixes"
+#define CHAR_BUFF_SIZE 4096
+#define YAREXE_VER "YAREXE - v5 Sept 2023 - bug fixes"
 #define YAREXE "Net Yaroze PS-X packager"
 
 /*
@@ -178,7 +178,11 @@ extern const unsigned char psx_exe[458752];
 
 FILE *auto_fileHnd = NULL, *target_fileHnd = NULL, *combine_fileHnd = NULL;
 long length1, length2, length3, length4, memorysize = 0;
-char *scriptstring = NULL, *memspace = NULL, *memstore = NULL;
+// char *scriptstring = NULL, *memspace = NULL, *memstore = NULL;
+char *memspace = NULL, *memstore = NULL;
+
+char scriptstring[CHAR_BUFF_SIZE];
+
 unsigned long exec_address = 0, stack_address = 0;
 unsigned char *auto_fileBuff=NULL, *filebuffer=NULL,
 	      *eco2exe_filename=NULL, systemcalldata[256];
@@ -931,7 +935,7 @@ int main(int argc, char *argv[])
 	readfile(auto_fileHnd, auto_fileBuff, length1);
 	auto_fileBuff[length1] = 0;
 
-	scriptstring = malloc(1);
+	// scriptstring = malloc(1);
 	for (index = 0, curline = 0; index < length1; index++)
 	{
 		temp = auto_fileBuff[index];
@@ -950,7 +954,7 @@ int main(int argc, char *argv[])
 		}
 		if (!temp) continue;
 		scriptstring[curline++] = temp;
-		scriptstring = realloc(scriptstring, curline + 1);
+		//scriptstring = realloc(scriptstring, curline + 1); // removed this caused stack overflows in TCC? I dont know why
 	}
 
 	// single line, single exe file, no data, no go statement
