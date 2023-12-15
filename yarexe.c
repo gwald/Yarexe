@@ -86,10 +86,11 @@
 
 
 #define CHAR_BUFF_SIZE 4096
-#define YAREXE_VER "YAREXE - v5 Sept 2023 - bug fixes"
+#define YAREXE_VER "YAREXE - v6 Dec 2023 - bug fixes"
 #define YAREXE "Net Yaroze PS-X packager"
 
 /*
+ * v6 - zero file size error, replace space reading with isspace
  * v5 - bug fixes
  * v4 - CodeWarrior and included Libps.exe
  */
@@ -185,12 +186,37 @@ char scriptstring[CHAR_BUFF_SIZE];
 
 unsigned long exec_address = 0, stack_address = 0;
 unsigned char *auto_fileBuff=NULL, *filebuffer=NULL,
-	      *eco2exe_filename=NULL, systemcalldata[256];
+		*eco2exe_filename=NULL, systemcalldata[256];
 
 
 int g_foundYarExe = 0;
 int g_verbose = 0;
 char g_pxe_filename[256];
+
+
+
+// https://stackoverflow.com/questions/656542/trim-a-string-in-c
+char *ltrim(char *s)
+{
+    while(isspace(*s)) s++;
+    return s;
+}
+
+char *rtrim(char *s)
+{
+    char* back = s + strlen(s);
+    while(isspace(*--back));
+    *(back+1) = '\0';
+    return s;
+}
+
+char *trim(char *s)
+{
+    return rtrim(ltrim(s));
+}
+
+
+
 
 long file_length(FILE *handle)
 {
@@ -361,11 +387,18 @@ char *str2upr(char *str)
 
 int cmd_dload(char (*params[]) )
 {
-	unsigned long address, length;
+	unsigned long i, address, length;
 	FILE *handle;
+
+	for(i=0; i<4; i++)
+	{
+		if(g_verbose==1)
+			printf("cmd_dload param[%d] = %s\n", i, params[i]);
+	}
 
 	if (!params[2] || !params[3])
 	{
+		// printf("ERROR: Not enough parameters for command DLOAD params[2]=%s params[3]=%s\n", params[1], params[2] );
 		printf("ERROR: Not enough parameters for command DLOAD\n");
 		return (1);
 	}
@@ -377,10 +410,19 @@ int cmd_dload(char (*params[]) )
 	}
 	address = (unsigned long) strtoul(params[3], NULL, 16);
 	length = (unsigned long) file_length(handle);
+
+
+	if(!length)
+		{
+			printf("ERROR: Asset <%s> file size is zero!\n", params[2]);
+			return 1;
+		}
+
+
 	str2upr(params[2]);
 
 	if(g_verbose==1)
-		printf("Data %-11.11s length %-8.8lX address %-8.8lX\n", params[2], length,	address);
+		printf("Data: %s Length: 0x%X (%d) Address: 0x%X\n\n", params[2], length,length,	address);
 
 	if(MemoryWriteFile(handle, address, length))
 		return (1);
@@ -527,15 +569,22 @@ int cmd_load(char (*params[]) )
 
 
 
+	length = file_length(handle);
+
+
 	// read all of the ecoff file into a temphandle file for eco2exe - not required here
 #if 0
-	length = file_length(handle);
 	readfile(handle, filebuffer, length);
 	writefile(combine_fileHnd, filebuffer, length);
 #endif
 
 	fclose(handle);
 
+	if(!length)
+		{
+			printf("ERROR: Executable <%s> file size is zero!\n", params[2]);
+			return 1;
+		}
 
 
 	if( strstr(params[2], ".pxe") || strstr(params[2], ".PXE") ) // codewarrior exe need patching
@@ -580,7 +629,7 @@ int cmd_load(char (*params[]) )
 		unlink(COMBINE_TMP_FILENAME);// just in case!
 
 		if(g_pxe_filename[0]) // if PXE EXE was created, remove it
-				unlink(g_pxe_filename);
+			unlink(g_pxe_filename);
 		return (1);
 	}
 
@@ -657,32 +706,37 @@ int cmd_load(char (*params[]) )
 // domain) version of COMBINE.
 int parse(char *string)
 {
-	int str_len = strlen(string), x, y;
+	int str_len, x, y;
 	char **params;
 
+
+	string =  trim(string);
+	str_len =  strlen(string);
 
 	// Ignore blank strings
 	if (!str_len) return 0;
 
-	// Ignore strings with only spaces
-	for (x = 0; x < str_len; x++)
-		if (string[x] != ' ') break;
-	if (x == str_len) return 0;
-
-	y = 0;
+	x = y = 0;
 
 	params = malloc(sizeof(char *));
 	for (;;)
 	{
 		// Skip all initial spaces for this parameter
 		// If end of string occurs meanwhile, break completely
-		while ((x < str_len) && (string[x] == ' ')) x++;
-		if (x == str_len) break;
-		params[y] = &string[x];
+		while( (x < str_len) && isspace(string[x]) )
+			x++;
 
-		while ((x < str_len) && (string[x] != ' ')) x++;
+		if (x == str_len)
+			break;
+
+		params[y] = &string[x]; // start pointer
+
+		while( (x < str_len) && !isspace(string[x])  )
+			x++;
+
 		// Always set to 0 in either exit condition
-		string[x] = 0;
+		string[x] = 0; // end string
+
 		// But if at the end of string, break
 		if (x == str_len)
 		{
@@ -698,27 +752,36 @@ int parse(char *string)
 		params[y] = NULL;
 	}
 
-	str2upr(params[0]);
+	for(x=0; x<y; x++)
+	{
+		str2upr(params[x]);
 
-	if (params[1])
-		str2upr(params[1]);
+	//	if(g_verbose==1)
+	//		printf("param[%d] = %s\n", x, params[x]);
+	}
+
 
 	if (!strcmp(params[0], "GO") && g_verbose==1)
-		{
+	{
 		printf("GO command received - writing to disk...\n");
-		}
-
-	if (params[1] && !strcmp(params[0], "LOCAL"))
+	}
+	else if (params[1] && !strcmp(params[0], "LOCAL"))
 	{
 		if (!strcmp(params[1], "DLOAD"))
 		{
 			if( cmd_dload(params) )
+			{
+				printf("Critical error with this dload file: %s\n",params[2]);
 				goto err;
+			}
 		}
 		else if (!strcmp(params[1], "LOAD"))
 		{
 			if(cmd_load(params) )
+			{
+				printf("Critical error with the executable load file: %s\n",params[2]);
 				goto err;
+			}
 		}
 		else if(g_verbose==1)
 		{
@@ -736,7 +799,7 @@ int parse(char *string)
 	fflush(stdout);
 	return 0;
 
-err:
+	err:
 	free(params);
 	return 1;
 }
@@ -775,7 +838,7 @@ void print_authors(void)
 
 int main(int argc, char *argv[])
 {
-	int index, curline, ret =1;
+	int index,curline, curpos, ret =1;
 	unsigned char temp;
 	char target_combEcoExe[] = "combEco.exe";
 
@@ -935,16 +998,22 @@ int main(int argc, char *argv[])
 	readfile(auto_fileHnd, auto_fileBuff, length1);
 	auto_fileBuff[length1] = 0;
 
+	if(g_verbose)
+		printf("***********\nSiocons batch file:\n\n%s\n\n***********\n\n", auto_fileBuff);
+
+	curline=0;
 	// scriptstring = malloc(1);
-	for (index = 0, curline = 0; index < length1; index++)
+	for (index = 0, curpos = 0; index < length1; index++)
 	{
 		temp = auto_fileBuff[index];
-		if ((temp == 0x0D) || (temp == 0x0A)) // - or * ASCII
+		if ((temp == 0x0D) || (temp == 0x0A)) // Carriage Return or Line Feed in ASCII hex
 		{
-			scriptstring[curline] = 0;
-			curline = 0;
+			scriptstring[curpos] = 0;
+			curpos = 0;
+			curline++;
 			if( parse(scriptstring) )
 			{
+				printf("Failed in line %d\n",curline );
 				//bad giving up
 				goto RUN_EXIT;
 
@@ -952,13 +1021,16 @@ int main(int argc, char *argv[])
 
 			continue;
 		}
+
 		if (!temp) continue;
-		scriptstring[curline++] = temp;
+
+		scriptstring[curpos++] = temp;
+		//printf("%s\n", scriptstring);
 		//scriptstring = realloc(scriptstring, curline + 1); // removed this caused stack overflows in TCC? I dont know why
 	}
 
 	// single line, single exe file, no data, no go statement
-	if (curline)
+	if (curpos)
 	{
 		// scriptstring[x] = temp;
 		if(g_verbose)
@@ -1025,8 +1097,6 @@ int main(int argc, char *argv[])
 	if(auto_fileBuff)
 		free(auto_fileBuff);
 
-	if(scriptstring)
-		free(scriptstring);
 
 	return ret;
 
@@ -1233,7 +1303,7 @@ int copyPXE(char *filename)
 	fclose(fto);
 
 	free(pxedata);
-	
+
 	fflush(stdout);
 
 	return 0;
@@ -1992,7 +2062,7 @@ int eco2exe_main(char *filename)
 
 	fclose(exe);
 	fclose(ecoff);
-	
+
 	fflush(stdout);
 	return 0;
 
