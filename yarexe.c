@@ -86,10 +86,11 @@
 
 
 #define CHAR_BUFF_SIZE 4096
-#define YAREXE_VER "YAREXE - v6 Dec 2023 - bug fixes"
+#define YAREXE_VER "YAREXE - v7 Jan 2024 -  added fcaseopen.c by OneSadCookie"
 #define YAREXE "Net Yaroze PS-X packager"
 
 /*
+ * v7 - added fcaseopen.c by OneSadCookie
  * v6 - zero file size error, replace space reading with isspace
  * v5 - bug fixes
  * v4 - CodeWarrior and included Libps.exe
@@ -112,6 +113,15 @@
 int eco2exe_main(char *filename);
 int exeFixUp_main( char *filename);
 #endif
+
+
+
+
+//https://github.com/OneSadCookie/fcaseopen/blob/master/fcaseopen.c
+FILE *fcaseopen(char const *path, char const *mode);
+
+
+
 
 
 
@@ -383,6 +393,23 @@ char *str2upr(char *str)
 }
 
 
+// windows can handle both \ and / style of slash, linux does not?
+char *swap_slashes( char *s )
+{
+	printf("\n");
+	while( *s != 0 )
+	{
+		printf("%c ", *s);
+		if(*s == '\\')
+			*s ='/';
+		else if(*s == '/')
+			*s ='\\';
+		printf("%c ", *s);
+		s++;
+	};
+	printf("\n");
+	return(s);
+}
 
 
 int cmd_dload(char (*params[]) )
@@ -402,7 +429,7 @@ int cmd_dload(char (*params[]) )
 		printf("ERROR: Not enough parameters for command DLOAD\n");
 		return (1);
 	}
-	handle = fopen(params[2], "rb");
+	handle = fcaseopen(params[2], "rb");
 	if (!handle)
 	{
 		printf("ERROR: Could not find input file '%s' \nCheck your path and filename!\n", params[2]);
@@ -419,7 +446,7 @@ int cmd_dload(char (*params[]) )
 		}
 
 
-	str2upr(params[2]);
+	//str2upr(params[2]);
 
 	if(g_verbose==1)
 		printf("Data: %s Length: 0x%X (%d) Address: 0x%X\n\n", params[2], length,length,	address);
@@ -496,7 +523,7 @@ int cmd_load(char (*params[]) )
 		printf("ERROR: Not enough parameters for command DLOAD\n");
 		return (1);
 	}
-	handle = fopen(params[2], "rb");
+	handle = fcaseopen(params[2], "rb");
 
 	//trying a few common miss naming in the auto file
 	if (!handle)
@@ -519,7 +546,7 @@ int cmd_load(char (*params[]) )
 
 
 
-		handle = fopen(yarFile, "rb");
+		handle = fcaseopen(yarFile, "rb");
 		if (!handle)
 		{
 
@@ -537,13 +564,13 @@ int cmd_load(char (*params[]) )
 
 
 
-			handle = fopen(yarFile, "rb");
+			handle = fcaseopen(yarFile, "rb");
 			if (!handle)
 			{
 
 				strcpy(yarFile,"main" ); //most common yaroze exe
 
-				handle = fopen(yarFile, "rb");
+				handle = fcaseopen(yarFile, "rb");
 				if (!handle)
 				{
 					printf("ERROR: Could not find yaroze main program file (%s) (with/without .exe nor .sys)  - auto file (Net Yaroze script) must have the last line as:  go\nDo not include tabs or other non alphanumeric chars.\nEtentions .exe and .sys are ignored, ie main.exe main.sys are the same as main.\nMake sure the batch file ends with a new line or a go statement and run yarexe auto.batch -v", params[2]);
@@ -621,7 +648,7 @@ int cmd_load(char (*params[]) )
 	}
 
 
-	combine_fileHnd = fopen(COMBINE_TMP_FILENAME, "rb");
+	combine_fileHnd = fcaseopen(COMBINE_TMP_FILENAME, "rb");
 	if (!combine_fileHnd)
 	{
 		printf("ERROR: Could not open temporary output file %s\n", COMBINE_TMP_FILENAME);
@@ -752,13 +779,10 @@ int parse(char *string)
 		params[y] = NULL;
 	}
 
-	for(x=0; x<y; x++)
-	{
-		str2upr(params[x]);
 
-	//	if(g_verbose==1)
-	//		printf("param[%d] = %s\n", x, params[x]);
-	}
+
+	str2upr(params[0]); // local or go
+
 
 
 	if (!strcmp(params[0], "GO") && g_verbose==1)
@@ -767,6 +791,8 @@ int parse(char *string)
 	}
 	else if (params[1] && !strcmp(params[0], "LOCAL"))
 	{
+		str2upr(params[1]); // dload or load
+
 		if (!strcmp(params[1], "DLOAD"))
 		{
 			if( cmd_dload(params) )
@@ -910,20 +936,20 @@ int main(int argc, char *argv[])
 
 	// argv 1 is always auto file!
 
-	auto_fileHnd = fopen(argv[1], "rb");
+	auto_fileHnd = fcaseopen(argv[1], "rb");
 	if (!auto_fileHnd)
 	{
 
 		//try upper case!
 
 		str2upr(argv[1]);
-		auto_fileHnd = fopen(argv[1], "rb");
+		auto_fileHnd = fcaseopen(argv[1], "rb");
 
 		if (!auto_fileHnd)
 		{
 			// try again in all lower!
 			str2lwr(argv[1]);
-			auto_fileHnd = fopen(argv[1], "rb");
+			auto_fileHnd = fcaseopen(argv[1], "rb");
 
 		}
 
@@ -936,14 +962,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	target_fileHnd = fopen(target_combEcoExe, "w+b");
+	target_fileHnd = fcaseopen(target_combEcoExe, "w+b");
 	if (!target_fileHnd)
 	{
 		printf("Could not open output file %s\n", argv[2]);
 		goto RUN_EXIT;
 	}
 
-	combine_fileHnd = fopen(COMBINE_TMP_FILENAME, "w+b");
+	combine_fileHnd = fcaseopen(COMBINE_TMP_FILENAME, "w+b");
 	if (!combine_fileHnd)
 	{
 		printf("Could not open temporary output file %s\n", COMBINE_TMP_FILENAME);
@@ -1155,13 +1181,13 @@ int copyPXE(char *filename)
 
 	// new file ends with exe, not pxe
 	filename[strlen(filename) -3] = 'p'; // make sure filename is pxe
-	ffrom = fopen(filename, "rb");
+	ffrom = fcaseopen(filename, "rb");
 	if (!ffrom)
 		return 1;
 
 	//filename[strlen(filename) -3] = 'e'; // change to exe
 
-	fto = fopen(COMBINE_TMP_FILENAME, "wb");
+	fto = fcaseopen(COMBINE_TMP_FILENAME, "wb");
 	if (!fto)
 		return 1;
 
@@ -1261,7 +1287,7 @@ int copyPXE(char *filename)
 				printf("Creating PS-X EXE file: %s " , g_pxe_filename);
 
 
-			PSX = fopen(g_pxe_filename, "wb");
+			PSX = fcaseopen(g_pxe_filename, "wb");
 
 			if (!PSX)
 				return 1;
@@ -1281,7 +1307,7 @@ int copyPXE(char *filename)
 			printf("Creating PS-X EXE file: %s " , filename);
 
 
-			PSX = fopen(filename, "wb");
+			PSX = fcaseopen(filename, "wb");
 
 			if (!PSX)
 				return 1;
@@ -1322,7 +1348,7 @@ int patchPXE_CodeWarrior(char *filename)// returns open file pointer to PSX-EXE 
 	// new file ends with exe, not pxe
 	g_pxe_filename[strlen(g_pxe_filename) -3] = 'e';
 
-	file = fopen(g_pxe_filename, "rb");
+	file = fcaseopen(g_pxe_filename, "rb");
 
 	if(file  != NULL) //exe file already exists
 	{
@@ -1341,7 +1367,7 @@ int patchPXE_CodeWarrior(char *filename)// returns open file pointer to PSX-EXE 
 
 	}
 
-	// file = fopen(filename, "w+");
+	// file = fcaseopen(filename, "w+");
 	fflush(stdout);
 	return 0;
 
@@ -1395,7 +1421,7 @@ int eco2exe_main(char *filename)
 	if(g_pxe_filename[0]) // codewarrior file has been patched?
 		filename = g_pxe_filename; // use patched PS=X EXE instead
 
-	ecoff=fopen(filename, "rb");
+	ecoff=fcaseopen(filename, "rb");
 
 	if (!ecoff)
 	{
@@ -1406,7 +1432,7 @@ int eco2exe_main(char *filename)
 	//strcat(filename, ".exe"); /* output filename is same as input but with .exe appended */
 
 
-	exe=fopen(COMBINE_TMP_FILENAME, "wb");
+	exe=fcaseopen(COMBINE_TMP_FILENAME, "wb");
 
 	if (!exe)
 	{
@@ -2144,7 +2170,7 @@ int exeFixUp_main(char *filenameEXEC)
 
 	//strncpy(filenameEXEC,argv[1],256);
 
-	exeHnd=fopen(filenameEXEC, "rb");
+	exeHnd=fcaseopen(filenameEXEC, "rb");
 
 	if (!exeHnd)
 	{
@@ -2237,7 +2263,7 @@ int exeFixUp_main(char *filenameEXEC)
       if (yesno=='Y')
 		 */
 		{
-			outHnder = fopen("psx.exe", "wb");
+			outHnder = fcaseopen("psx.exe", "wb");
 
 			if (!outHnder)
 			{
@@ -2292,7 +2318,7 @@ int exeFixUp_main(char *filenameEXEC)
       if (yesno=='Y')
 		 */
 		{
-			outHnder = fopen("psx.exe", "wb");
+			outHnder = fcaseopen("psx.exe", "wb");
 
 			if (!outHnder)
 			{
@@ -2378,4 +2404,127 @@ int exeFixUp_main(char *filenameEXEC)
 	return 0;
 
 }
+
+
+
+
+//https://github.com/OneSadCookie/fcaseopen/blob/master/fcaseopen.c
+
+#include <unistd.h>
+void casechdir(char const *path)
+{
+#if !defined(_WIN32)
+    char *r = alloca(strlen(path) + 2);
+    if (casepath(path, r))
+    {
+        chdir(r);
+    }
+    else
+    {
+        errno = ENOENT;
+    }
+#else
+    chdir(path);
+#endif
+}
+
+
+#if !defined(_WIN32)
+#include <stdlib.h>
+#include <string.h>
+
+#include <dirent.h>
+#include <errno.h>
+#include <unistd.h>
+
+// r must have strlen(path) + 2 bytes
+static int casepath(char const *path, char *r)
+{
+    size_t l = strlen(path);
+    char *p = alloca(l + 1);
+    strcpy(p, path);
+    size_t rl = 0;
+
+    DIR *d;
+    if (p[0] == '/')
+    {
+        d = opendir("/");
+        p = p + 1;
+    }
+    else
+    {
+        d = opendir(".");
+        r[0] = '.';
+        r[1] = 0;
+        rl = 1;
+    }
+
+    int last = 0;
+    char *c = strsep(&p, "/");
+    while (c)
+    {
+        if (!d)
+        {
+            return 0;
+        }
+
+        if (last)
+        {
+            closedir(d);
+            return 0;
+        }
+
+        r[rl] = '/';
+        rl += 1;
+        r[rl] = 0;
+
+        struct dirent *e = readdir(d);
+        while (e)
+        {
+            if (strcasecmp(c, e->d_name) == 0)
+            {
+                strcpy(r + rl, e->d_name);
+                rl += strlen(e->d_name);
+
+                closedir(d);
+                d = opendir(r);
+
+                break;
+            }
+
+            e = readdir(d);
+        }
+
+        if (!e)
+        {
+            strcpy(r + rl, c);
+            rl += strlen(c);
+            last = 1;
+        }
+
+        c = strsep(&p, "/");
+    }
+
+    if (d) closedir(d);
+    return 1;
+}
+#endif
+
+FILE *fcaseopen(char const *path, char const *mode)
+{
+    FILE *f = fopen(path, mode);
+#if !defined(_WIN32)
+    if (!f)
+    {
+        char *r = alloca(strlen(path) + 2);
+        if (casepath(path, r))
+        {
+            f = fopen(r, mode);
+        }
+    }
+#endif
+    return f;
+}
+
+
 #include "yarexe.inc"
