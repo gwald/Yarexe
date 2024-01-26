@@ -53,6 +53,10 @@ To run no$PSX in the background in winXP+ use:
 
 ## Change log
 
+* v7 Jan 2024 -  added fcaseopen.c by OneSadCookie for linux path and filename DOS support
+  
+* v6 Dec 2023 - minor fixes
+  
 * [v5](https://github.com/gwald/Yarexe/releases/tag/v5) - Jun 2023
   - Bug fixes
 
