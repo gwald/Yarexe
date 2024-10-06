@@ -18,7 +18,7 @@ Yarexe converts a [Net Yaroze siocons script](https://github.com/gwald/YOC/relea
 1) Net Yaroze compiler (MIPSEL-LE ECOFF), DJGP GCC (DOS) or PSX3 (win32) compiler.
 2) PS-X Executables (ELF PS-X), A normal, staticly linked PlayStation executable.
 3) Net Yaroze Metrowerks Codewarrior .PXE release executables ( not the debug executables) 
-4) Net Yaroze DOS compiler #1 and patched with [eco2exe.exe](https://github.com/ChrisRx/psxsdk?tab=readme-ov-file#eco2exe) - Must be renamed to *.PXE as it's the same format as #3
+4) Net Yaroze compiler #1 and patched with [eco2exe.exe](https://github.com/ChrisRx/psxsdk?tab=readme-ov-file#eco2exe) - Must be renamed to *.PXE as it's the same format as #3.
 
 ## Syntax
 
