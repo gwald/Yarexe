@@ -1,9 +1,9 @@
 # Yarexe
 
-Yarexe is a single program which converts Net Yaroze executables to a single psx.exe file use the Net Yaroze siocons loading script file, often called auto or batch.
+Yarexe converts a [Net Yaroze siocons script](https://github.com/gwald/YOC/releases) file and packages the assets and executable into a single psx.exe file that can run on a PlayStation.
 
-* yarexe.exe : a win32 executable (compiled with TinyCC).
-* [yarexe.c](yarexe.c) & [yarexe.inc](yarexe.inc) : source files.
+* [yarexe.exe[(yarexe.exe) is a win32 executable (compiled with TinyCC).
+* [yarexe.c](yarexe.c) & [yarexe.inc](yarexe.inc) are the source files.
 
 
 ## Compiling for Linux etc:
@@ -12,8 +12,13 @@ Yarexe is a single program which converts Net Yaroze executables to a single psx
 
 **Note:** Yarexe is programmed for windows, it will throw a lot of warnings, ignore them.
 
-**Note:** Yarexe does NOT handle case differences and it will not find directories or files for you.
+**Note:** Yarexe tries to handle case differences but it will not find directories or files for you.
 
+## PlayStation executable supported formats
+1) Net Yaroze compiler (MIPSEL-LE ECOFF), DJGP GCC (DOS) or PSX3 (win32) compiler.
+2) PS-X Executables (ELF PS-X), A normal, staticly linked PlayStation executable.
+3) Net Yaroze Metrowerks Codewarrior .PXE release executables ( not the debug executables) 
+4) Net Yaroze DOS compiler #1 and patched with [eco2exe.exe](https://github.com/ChrisRx/psxsdk?tab=readme-ov-file#eco2exe) - Must be renamed to *.PXE as it's the same format as #3
 
 ## Syntax
 
@@ -36,7 +41,6 @@ Yarexe is a single program which converts Net Yaroze executables to a single psx
 Programs requiring the Net Yaroze CDROM (typically for music), may or may not work depending on the coding.
 The work around is to put the psx.exe on a NY cdrom image, see: How to convert Net Yaroze games (siocons script with exe and assets) into PS1 ISO that runs in emulators: - https://www.youtube.com/watch?v=H0Ki7JnamIQ
 
-Standard PS-X ELF executables (i.e. Net Yaroze ECOFF files patched with eco2elf) can be used but they have to use the CodeWarrior .pxe extension.
 
 To run on the [no$psx emulator](http://problemkaputt.de/psx.htm) (<- tip the man!) it *MUST* be a .exe file!
 
@@ -52,17 +56,17 @@ To run no$PSX in the background in winXP+ use:
 
 
 ## Change log
+[Releases:](https://github.com/gwald/Yarexe/releases)
+
+* v8 Oct 2024 - Removed 2MB limit for 8MB support via emulation - Note, Some emulators do not support files over 2MB!
 
 * v7 Jan 2024 -  added fcaseopen.c by OneSadCookie for linux path and filename DOS support
   
 * v6 Dec 2023 - minor fixes
   
-* [v5](https://github.com/gwald/Yarexe/releases/tag/v5) - Jun 2023
-  - Bug fixes
+* v5 - Jun 2023  - Bug fixes
 
-* [v4](https://github.com/gwald/Yarexe/releases/tag/v4) - Jan 2023
-  - Improved CodeWarrior support
-  - contains all previous versions (exe and code)
+* v4 - Jan 2023  - Improved CodeWarrior support and contains all previous versions (exe and code)
 
 * [yarexe3.c](https://github.com/gwald/Yarexe/tree/3331cdf20a3c9bdf56c7c029210b2c7c9d3bcd44) - Aug 6th 2022
   - CodeWarrior PXE support with included Libps.exe
