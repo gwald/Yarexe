@@ -2,7 +2,7 @@
 
 Yarexe converts a [Net Yaroze siocons script](https://github.com/gwald/YOC/releases) file and packages the assets and executable into a single psx.exe file that can run on a PlayStation.
 
-* [yarexe.exe[(yarexe.exe) is a win32 executable (compiled with TinyCC).
+* [yarexe.exe](yarexe.exe) is a win32 executable (compiled with TinyCC).
 * [yarexe.c](yarexe.c) & [yarexe.inc](yarexe.inc) are the source files.
 
 
