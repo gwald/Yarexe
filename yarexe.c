@@ -86,10 +86,11 @@
 
 
 #define CHAR_BUFF_SIZE 4096
-#define YAREXE_VER "YAREXE - v7 Jan 2024 -  added fcaseopen.c by OneSadCookie"
+#define YAREXE_VER "YAREXE - v8 Oct 2024 -  Removed 2MB limit for 8MB support via emulation"
 #define YAREXE "Net Yaroze PS-X packager"
 
 /*
+ * v8 - Removed 2MB limit for 8MB support via emulation
  * v7 - added fcaseopen.c by OneSadCookie
  * v6 - zero file size error, replace space reading with isspace
  * v5 - bug fixes
@@ -203,26 +204,29 @@ int g_foundYarExe = 0;
 int g_verbose = 0;
 char g_pxe_filename[256];
 
+#define LOG(format, args...)  \
+		{printf("%s %d: ",__FILE__, __LINE__); fprintf (stdout, format , ## args);  fflush(stdout);}
+
 
 
 // https://stackoverflow.com/questions/656542/trim-a-string-in-c
 char *ltrim(char *s)
 {
-    while(isspace(*s)) s++;
-    return s;
+	while(isspace(*s)) s++;
+	return s;
 }
 
 char *rtrim(char *s)
 {
-    char* back = s + strlen(s);
-    while(isspace(*--back));
-    *(back+1) = '\0';
-    return s;
+	char* back = s + strlen(s);
+	while(isspace(*--back));
+	*(back+1) = '\0';
+	return s;
 }
 
 char *trim(char *s)
 {
-    return rtrim(ltrim(s));
+	return rtrim(ltrim(s));
 }
 
 
@@ -300,29 +304,49 @@ void writefile(FILE *handle, void *buffer, long length)
 	}
 }
 
+int size_check(unsigned long address, long length)
+{
+
+	if ((address > 0x001FFFFF))
+	{
+		if(g_verbose==1)
+			printf("WARNING: Address %-8.8lX is greater than the 2MB retail limit - Check your linker settings!\n", address);
+		//	return (1);
+	}
+	else if ((address < 0x00010000) )
+	{
+		if(g_verbose==1)
+			printf("WARNING: Address %-8.8lX conflits with the Net Yaroze LIBPS location - Check your linker settings!\n", address);
+		//	return (1);
+	}
+
+
+	if (!length)
+	{
+		printf("CRITICAL ERROR: Zero length file detected!\n");
+		return (1);
+	}
+	if ((address + length) > 0x001FFFFF)
+	{
+		if(g_verbose==1)
+			printf("WARNING: FILE exceeds 2MB retail memory limits.\n");
+
+		// 	length = 0x00200000 - address;
+	}
+
+	return 0;
+}
 int MemoryWriteMemory(char *handle, unsigned long address, long length)
 {
 	unsigned long endaddress;
 
 	// Ignore high nibble
 	address &= 0x0FFFFFFF;
-	if ((address > 0x001FFFFF) || (address < 0x00010000))
-	{
-		printf("ERROR: Address %-8.8lX invalid - Check your linker settings!\n", address);
-		return (1);
-	}
-	if (!length)
-	{
-		printf("ERROR: Zero length file detected!\n");
-		return (1);
-	}
-	if ((address + length) > 0x001FFFFF)
-	{
-		if(g_verbose==1)
-			printf("WARNING: File exceeds memory bounds\n");
 
-		length = 0x00200000 - address;
-	}
+	if(size_check(  address, length)) // critical err?
+		return 1;
+
+
 	endaddress = length + address;
 
 	memcpy(memspace + address, handle, length);
@@ -341,23 +365,10 @@ int MemoryWriteFile(FILE *handle, unsigned long address, long length)
 
 	// Ignore high nibble
 	address &= 0x0FFFFFFF;
-	if ((address > 0x001FFFFF) || (address < 0x00010000))
-	{
-		printf("ERROR: Address %-8.8lX invalid!\n", address);
-		return (1);
-	}
-	if (!length)
-	{
-		printf("ERROR: Zero length file detected!\n");
-		return (1);
-	}
-	if ((address + length) > 0x001FFFFF)
-	{
-		if(g_verbose==1)
-			printf("WARNING: File exceeds memory bounds\n");
 
-		length = 0x00200000 - address;
-	}
+	if(size_check(  address, length)) // critical err?
+		return 1;
+
 	endaddress = length + address;
 	readfile(handle, memspace + address, length);
 
@@ -440,10 +451,10 @@ int cmd_dload(char (*params[]) )
 
 
 	if(!length)
-		{
-			printf("ERROR: Asset <%s> file size is zero!\n", params[2]);
-			return 1;
-		}
+	{
+		printf("ERROR: Asset <%s> file size is zero!\n", params[2]);
+		return 1;
+	}
 
 
 	//str2upr(params[2]);
@@ -452,7 +463,10 @@ int cmd_dload(char (*params[]) )
 		printf("Data: %s Length: 0x%X (%d) Address: 0x%X\n\n", params[2], length,length,	address);
 
 	if(MemoryWriteFile(handle, address, length))
-		return (1);
+	{
+		printf("%s has a RAM critical ERROR - FAILING!\n",  params[2]);
+		return 1;
+	}
 
 	fclose(handle);
 
@@ -608,10 +622,10 @@ int cmd_load(char (*params[]) )
 	fclose(handle);
 
 	if(!length)
-		{
-			printf("ERROR: Executable <%s> file size is zero!\n", params[2]);
-			return 1;
-		}
+	{
+		printf("ERROR: Executable <%s> file size is zero!\n", params[2]);
+		return 1;
+	}
 
 
 	if( strstr(params[2], ".pxe") || strstr(params[2], ".PXE") ) // codewarrior exe need patching
@@ -694,7 +708,10 @@ int cmd_load(char (*params[]) )
 	fseek(combine_fileHnd, 2048, SEEK_SET);
 
 	if( MemoryWriteFile(combine_fileHnd, exe_org, length - 2048) )
-		return (1);
+	{
+		printf("combine_fileHnd has a RAM Critical Error - Failing!\n");
+		return 1;
+	}
 
 	fclose(combine_fileHnd);
 	unlink(COMBINE_TMP_FILENAME);// remove tmp file
@@ -713,7 +730,9 @@ int cmd_load(char (*params[]) )
 
 
 		printf("NY exe %s length %lX (%lu) address %lX\n", file, length,	length, exe_org);
-		printf("Leaving patched CodeWarrior PS-X EXE file: %s " , g_pxe_filename);
+
+		if(g_pxe_filename[0]) // delete CW PS-X EXE file created
+			printf("Leaving patched CodeWarrior PS-X EXE file: %s " , g_pxe_filename);
 		fflush(stdout);
 	}
 	else // no verboase
@@ -979,7 +998,7 @@ int main(int argc, char *argv[])
 	fclose(combine_fileHnd);
 
 	// Allocate memory
-	memstore = calloc(1, 2 * 1024 * 1024 + 2048);
+	memstore = calloc(1, 9 * 1024 * 1024 + 2048);
 	if (memstore == NULL)
 	{
 		printf("Not enough memspace memory to build image (need 4 megs)\n");
@@ -989,7 +1008,7 @@ int main(int argc, char *argv[])
 	// keep memstore for free, memspace pointer gets moved
 	memspace = memstore;
 
-	filebuffer = calloc(1, 2 * 1024 * 1024 + 2048);
+	filebuffer = calloc(1, 9 * 1024 * 1024 + 2048);
 	if(filebuffer == NULL)
 	{
 		printf("Not enough filebuffer memory to build image (need 4 megs)\n");
@@ -1006,7 +1025,10 @@ int main(int argc, char *argv[])
 	// MemoryWriteFile(LibPS_fileHnd, 0x00010000, 397312);
 
 	if( MemoryWriteMemory((char *)psx_exe+0x800, (unsigned long) 0x00010000, (long) 397312) )
+	{
+		printf("PS-X Executable file has a RAM CRITICAL ERROR - failing!\n");
 		goto RUN_EXIT;
+	}
 
 
 	// Read script into RAM
@@ -2017,7 +2039,8 @@ int eco2exe_main(char *filename)
 	fprintf(exe, "%c%c%c%c", data[0], data[1], data[2], data[3]); /* d_size */
 	fprintf(exe, "%c%c%c%c", data[0], data[1], data[2], data[3]); /* b_addr */
 	fprintf(exe, "%c%c%c%c", data[0], data[1], data[2], data[3]); /* b_size */
-	int2char(0x801fff00, data);
+	//	int2char(0x801fff00, data);
+	int2char(memorysize, data);
 	fprintf(exe, "%c%c%c%c", data[0], data[1], data[2], data[3]); /* s_addr */
 	int2char(0, data);
 	fprintf(exe, "%c%c%c%c", data[0], data[1], data[2], data[3]); /* s_size */
@@ -2414,17 +2437,17 @@ int exeFixUp_main(char *filenameEXEC)
 void casechdir(char const *path)
 {
 #if !defined(_WIN32)
-    char *r = alloca(strlen(path) + 2);
-    if (casepath(path, r))
-    {
-        chdir(r);
-    }
-    else
-    {
-        errno = ENOENT;
-    }
+	char *r = alloca(strlen(path) + 2);
+	if (casepath(path, r))
+	{
+		chdir(r);
+	}
+	else
+	{
+		errno = ENOENT;
+	}
 #else
-    chdir(path);
+	chdir(path);
 #endif
 }
 
@@ -2440,90 +2463,90 @@ void casechdir(char const *path)
 // r must have strlen(path) + 2 bytes
 static int casepath(char const *path, char *r)
 {
-    size_t l = strlen(path);
-    char *p = alloca(l + 1);
-    strcpy(p, path);
-    size_t rl = 0;
+	size_t l = strlen(path);
+	char *p = alloca(l + 1);
+	strcpy(p, path);
+	size_t rl = 0;
 
-    DIR *d;
-    if (p[0] == '/')
-    {
-        d = opendir("/");
-        p = p + 1;
-    }
-    else
-    {
-        d = opendir(".");
-        r[0] = '.';
-        r[1] = 0;
-        rl = 1;
-    }
+	DIR *d;
+	if (p[0] == '/')
+	{
+		d = opendir("/");
+		p = p + 1;
+	}
+	else
+	{
+		d = opendir(".");
+		r[0] = '.';
+		r[1] = 0;
+		rl = 1;
+	}
 
-    int last = 0;
-    char *c = strsep(&p, "/");
-    while (c)
-    {
-        if (!d)
-        {
-            return 0;
-        }
+	int last = 0;
+	char *c = strsep(&p, "/");
+	while (c)
+	{
+		if (!d)
+		{
+			return 0;
+		}
 
-        if (last)
-        {
-            closedir(d);
-            return 0;
-        }
+		if (last)
+		{
+			closedir(d);
+			return 0;
+		}
 
-        r[rl] = '/';
-        rl += 1;
-        r[rl] = 0;
+		r[rl] = '/';
+		rl += 1;
+		r[rl] = 0;
 
-        struct dirent *e = readdir(d);
-        while (e)
-        {
-            if (strcasecmp(c, e->d_name) == 0)
-            {
-                strcpy(r + rl, e->d_name);
-                rl += strlen(e->d_name);
+		struct dirent *e = readdir(d);
+		while (e)
+		{
+			if (strcasecmp(c, e->d_name) == 0)
+			{
+				strcpy(r + rl, e->d_name);
+				rl += strlen(e->d_name);
 
-                closedir(d);
-                d = opendir(r);
+				closedir(d);
+				d = opendir(r);
 
-                break;
-            }
+				break;
+			}
 
-            e = readdir(d);
-        }
+			e = readdir(d);
+		}
 
-        if (!e)
-        {
-            strcpy(r + rl, c);
-            rl += strlen(c);
-            last = 1;
-        }
+		if (!e)
+		{
+			strcpy(r + rl, c);
+			rl += strlen(c);
+			last = 1;
+		}
 
-        c = strsep(&p, "/");
-    }
+		c = strsep(&p, "/");
+	}
 
-    if (d) closedir(d);
-    return 1;
+	if (d) closedir(d);
+	return 1;
 }
 #endif
 
 FILE *fcaseopen(char const *path, char const *mode)
 {
-    FILE *f = fopen(path, mode);
+	FILE *f = fopen(path, mode);
 #if !defined(_WIN32)
-    if (!f)
-    {
-        char *r = alloca(strlen(path) + 2);
-        if (casepath(path, r))
-        {
-            f = fopen(r, mode);
-        }
-    }
+	if (!f)
+	{
+		char *r = alloca(strlen(path) + 2);
+		if (casepath(path, r))
+		{
+			f = fopen(r, mode);
+		}
+	}
 #endif
-    return f;
+	return f;
 }
 
 
